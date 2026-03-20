@@ -2,47 +2,48 @@ pipeline {
     agent {
         label 'AGENT-1'
     }
+
     options {
-        timeout(time: 30, unit: 'MINUTES') //if pipeline build took more than this time, it will be aborted
-        disableConcurrentBuilds() // to prevent multiple builds of the same pipeline running at the same time
+        timeout(time: 30, unit: 'MINUTES') // abort if build exceeds 30 minutes
+        disableConcurrentBuilds()           // prevent concurrent builds
     }
-     parameters {
 
-       choice(name: 'ACTION', choices: ['apply', 'destroy'], description: 'Select ACTION')
-     } 
-
+    parameters {
+        choice(name: 'ACTION', choices: ['apply', 'destroy'], description: 'Select ACTION')
+    }
 
     stages {
         stage('Init') {
             steps {
                 sh """
                     cd 00-vpc
-                    'terraform init -reconfigure'
+                    terraform init -reconfigure
                 """
-                //
+            }
         }
+
         stage('Plan') {
             steps {
                 withAWS(region: 'us-east-1', credentials: 'aws-creds') {
                     sh """
-                    cd 00-vpc
-                    'terraform plan -out=tfplan'
+                        cd 00-vpc
+                        terraform plan -out=tfplan
                     """
                 }
             }
         }
     }
+
     post { 
         always { 
             echo "This section will always execute regardless of the build result"
-            deleteDir() // to clean the workspace after the build
+            deleteDir() // clean workspace
         }
         success { 
-            echo "This section will execute only if the build is successful"
+            echo "Pipeline succeeded!"
         }
         failure { 
-            echo "This section will execute only if the build fails"
+            echo "Pipeline failed!"
         }
     }
-  }
- }
+}
