@@ -1,6 +1,6 @@
 resource "aws_key_pair" "eks" {
   key_name   = "eks"
-  public_key = file("~/.ssh/eks.pub")
+  public_key = file("/c/Users/srima/devops/Mahalakshmi/repos/expense-infra/40-ekseks.pub")
 }
 
 module "eks" {
