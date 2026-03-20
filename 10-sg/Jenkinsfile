@@ -57,7 +57,7 @@ pipeline {
         stage ('Parallel In Sequential') {
             when {
               
-              expression {params.ACTION == 'apply' }
+              expression { params.ACTION == 'apply' }
             }
             parallel {
                 stage('Trigger Bastion') {
