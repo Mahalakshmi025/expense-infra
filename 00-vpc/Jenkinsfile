@@ -6,7 +6,7 @@ pipeline {
     options {
         timeout(time: 30, unit: 'MINUTES') // abort if build exceeds 30 minutes
         disableConcurrentBuilds()           // prevent concurrent builds
-        ansicolor('xterm')                   // enable ANSI color support
+        ansiColor('xterm')                   // enable ANSI color support
     }
 
     parameters {
