@@ -45,6 +45,12 @@ pipeline {
             }
         }
 
+        stage ('Destroy VPC') {
+            steps {
+                build job: '00-vpc', parameters: [string(name: 'ACTION', value: 'destroy')]
+            }
+        }
+
         
     }
     
