@@ -9,8 +9,8 @@ module "db" {
   instance_class      = "db.t3.micro"
   allocated_storage   = 10
   db_name             = "transactions"
-  username            = "root"
-  password            = "ExpenseApp1"
+  master_username            = "root"
+  master_password            = "ExpenseApp1"
   port                = 3306
   publicly_accessible = true
 
