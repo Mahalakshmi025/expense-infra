@@ -1,18 +1,32 @@
 module "db" {
   source = "terraform-aws-modules/rds/aws"
+  version = "7.2.0"
 
   identifier = local.resource_name #expense-dev
 
-  engine            = "mysql"
-  engine_version    = "8.0"
-  instance_class    = "db.t3.micro"
-  allocated_storage = 5
-
-  db_name  = "transactions"
-  username = "root"
-  manage_master_user_password = false
-  password = "ExpenseApp1"
-  port     = "3306"
+  # engine            = "mysql"
+  # engine_version    = "8.0"
+  # instance_class    = "db.t3.micro"
+  # allocated_storage = 10
+  
+  instance = {
+    identifier        = local.resource_name #expense-dev
+    instance_class    = "db.t3.micro"
+    allocated_storage = 10
+    engine            = "mysql"
+    engine_version    = "8.0"
+    db_name  = "transactions"
+    username = "root"
+    port     = 3306
+    password          = "ExpenseApp1"  # ✅ Password goes here inside 'instance'
+    publicly_accessible = true
+    
+  }
+  # db_name  = "transactions"
+  # username = "root"
+  # manage_master_user_password = false
+  # password = "ExpenseApp1"
+  # port     = "3306"
 
   vpc_security_group_ids = [local.mysql_sg_id]
   skip_final_snapshot = true
