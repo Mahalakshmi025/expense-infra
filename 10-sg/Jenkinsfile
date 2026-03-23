@@ -70,17 +70,23 @@ pipeline {
                         build job: '40-eks', parameters: [string(name: 'ACTION', value: 'apply')], wait: false
                     }
                 }
-                 stage('Trigger ACM') {
-                    steps {
-                        build job: '50-acm', parameters: [string(name: 'ACTION', value: 'apply')], wait: false
-                    }
-                }
-                 stage('Trigger ALB') {
-                    steps {
-                        build job: '60-alb', parameters: [string(name: 'ACTION', value: 'apply')], wait: false
-                    }
-                }
-            }
+            //      stage('Trigger ACM') {
+            //         steps {
+            //             build job: '50-acm', parameters: [string(name: 'ACTION', value: 'apply')], wait: false
+            //         }
+            //     }
+            //      stage('Trigger ALB') {
+            //         steps {
+            //             build job: '60-alb', parameters: [string(name: 'ACTION', value: 'apply')], wait: false
+            //         }
+            //     }
+            //      stage('Trigger ECR') {
+            //         steps {
+            //             build job: '70-ecr', parameters: [string(name: 'ACTION', value: 'apply')], wait: false
+            //         }
+            //    }
+               
+
         }
 
         
