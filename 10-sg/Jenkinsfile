@@ -4,9 +4,9 @@ pipeline {
     }
 
     options {
-        timeout(time: 30, unit: 'MINUTES') // abort if build exceeds 30 minutes
-        disableConcurrentBuilds()           // prevent concurrent builds
-        ansiColor('xterm')                   // enable ANSI color support
+        timeout(time: 30, unit: 'MINUTES')
+        disableConcurrentBuilds()
+        ansiColor('xterm')
     }
 
     parameters {
@@ -27,17 +27,13 @@ pipeline {
         }
 
         stage('Apply or Destroy') {
-            // input {
-            //     message "Should we continue to ${params.ACTION}?"
-            //     ok "Yes, we should!"
-            // }
             steps {
                 withAWS(region: 'us-east-1', credentials: 'aws-creds') {
                     sh """
                        cd 10-sg
-                       if [ "${ACTION}" = "apply" ]; then
+                       if [ "${params.ACTION}" = "apply" ]; then
                           terraform apply -auto-approve tfplan
-                       elif [ "${ACTION}" = "destroy" ]; then
+                       elif [ "${params.ACTION}" = "destroy" ]; then
                           terraform destroy -auto-approve
                        fi
                     """
@@ -56,48 +52,27 @@ pipeline {
 
         stage ('Parallel In Sequential') {
             when {
-              
-              expression { params.ACTION == 'apply' }
+                expression { params.ACTION == 'apply' }
             }
             parallel {
                 stage('Trigger Bastion') {
                     steps {
-                        build job: '20-bastion', parameters: [string(name: 'ACTION', value: 'apply')], wait: false
+                        build job: '20-bastion', parameters: [string(name: 'ACTION', value: 'apply')]
                     }
                 }
                 stage('Trigger EKS') {
                     steps {
-                        build job: '40-eks', parameters: [string(name: 'ACTION', value: 'apply')], wait: false
+                        build job: '40-eks', parameters: [string(name: 'ACTION', value: 'apply')]
                     }
                 }
-            //      stage('Trigger ACM') {
-            //         steps {
-            //             build job: '50-acm', parameters: [string(name: 'ACTION', value: 'apply')], wait: false
-            //         }
-            //     }
-            //      stage('Trigger ALB') {
-            //         steps {
-            //             build job: '60-alb', parameters: [string(name: 'ACTION', value: 'apply')], wait: false
-            //         }
-            //     }
-            //      stage('Trigger ECR') {
-            //         steps {
-            //             build job: '70-ecr', parameters: [string(name: 'ACTION', value: 'apply')], wait: false
-            //         }
-            //    }
-               
+            }
+        } 
 
-        }
-
-        
-    }
-
-    
-
+    } 
     post { 
         always { 
             echo "This section will always execute regardless of the build result"
-            deleteDir() // clean workspace
+            deleteDir()
         }
         success { 
             echo "Pipeline succeeded!"
@@ -106,5 +81,4 @@ pipeline {
             echo "Pipeline failed!"
         }
     }
-  }
 }
