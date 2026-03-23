@@ -79,31 +79,29 @@ pipeline {
             }
         }
 
-        stage ('Parallel-2') {
+        stage('Sequential') {
             when {
                 expression { params.ACTION == 'apply' }
             }
-
-            parallel {
-                stage('Trigger ACM') {
+            stages {
+                stage('ACM') {
                     steps {
-                        build job: '50-acm', parameters: [string(name: 'ACTION', value: 'apply')]
+                        build job: '50-acm', parameters: [string(name: 'ACTION', value: "apply")]
                     }
                 }
-                stage('Trigger ALB') {
+                stage('ALB') {
                     steps {
-                        build job: '60-alb', parameters: [string(name: 'ACTION', value: 'apply')], wait: false
+                        build job: '60-alb', parameters: [string(name: 'ACTION', value: "apply")], wait: false
                     }
                 }
-                stage('Trigger CDN') {
+                stage('CDN') {
                     steps {
-                        build job: '80-cdn', parameters: [string(name: 'ACTION', value: 'apply')], wait: false
+                        build job: '80-cdn', parameters: [string(name: 'ACTION', value: "apply")], wait: false
                     }
                 }
-                
-                
             }
-        }  
+                
+        }
 
     } 
     post { 
