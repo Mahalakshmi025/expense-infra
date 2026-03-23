@@ -2,7 +2,6 @@ module "db" {
   source = "terraform-aws-modules/rds/aws"
   version = "7.2.0"
 
-  identifier = local.resource_name #expense-dev
 
   identifier          = local.resource_name  # expense-dev
   engine              = "mysql"
