@@ -1,0 +1,115 @@
+pipeline {
+    agent {
+        label 'AGENT-1'
+    }
+
+    options {
+        timeout(time: 30, unit: 'MINUTES') // abort if build exceeds 30 minutes
+        disableConcurrentBuilds()           // prevent concurrent builds
+        ansiColor('xterm')                   // enable ANSI color support
+    }
+
+    parameters {
+        choice(name: 'ACTION', choices: ['apply', 'destroy'], description: 'Select ACTION')
+    }
+
+    stages {
+        stage('Init and Plan') {
+            steps {
+                withAWS(region: 'us-east-1', credentials: 'aws-creds') {
+                    sh """
+                        cd 80-cdn
+                        terraform init -reconfigure
+                        terraform plan -out=tfplan
+                    """
+                }
+            }
+        }
+
+        stage('Apply or Destroy') {
+            // input {
+            //     message "Should we continue to ${params.ACTION}?"
+            //     ok "Yes, we should!"
+            // }
+            steps {
+                withAWS(region: 'us-east-1', credentials: 'aws-creds') {
+                    sh """
+                       cd 80-cdn
+                       if [ "${ACTION}" = "apply" ]; then
+                          terraform apply -auto-approve tfplan
+                       elif [ "${ACTION}" = "destroy" ]; then
+                          terraform destroy -auto-approve
+                       fi
+                    """
+                }
+            }
+        }
+
+        stage ('Parallel-1') {
+            when {
+                expression { params.ACTION == 'destroy' }
+            }
+            parallel {
+                stage('Trigger ECR') {
+                    steps {
+                        build job: '70-ecr', parameters: [string(name: 'ACTION', value: 'destroy')]
+                    }
+                }
+                stage('Trigger ALB') {
+                    steps {
+                        build job: '60-alb', parameters: [string(name: 'ACTION', value: 'destroy')]
+                    }
+                }
+                
+                stage('Trigger ACM') {
+                    steps {
+                        build job: '50-acm', parameters: [string(name: 'ACTION', value: 'destroy')]
+                    }
+                }
+                stage('Trigger EKS') {
+                    steps {
+                        build job: '40-eks', parameters: [string(name: 'ACTION', value: 'destroy')]
+                    }
+                }
+                stage('Trigger RDS') {
+                    steps {
+                        build job: '30-rds', parameters: [string(name: 'ACTION', value: 'destroy')]
+                    }
+                }
+                stage('Trigger BASTION') {
+                    steps {
+                        build job: '20-bastion', parameters: [string(name: 'ACTION', value: 'destroy')]
+                    }
+                }
+                
+            }
+        }
+
+        stage('SG-Destroy') {
+            steps {
+                 build job: '10-sg', parameters: [string(name: 'ACTION', value: 'destroy')]
+                }
+            }
+        stage('VPC-Destry') {
+            steps {
+                 build job: '00-vpc', parameters: [string(name: 'ACTION', value: 'destroy')]
+            }
+
+        }
+        
+    }
+    
+
+    post { 
+        always { 
+            echo "This section will always execute regardless of the build result"
+            deleteDir() // clean workspace
+        }
+        success { 
+            echo "Pipeline succeeded!"
+        }
+        failure { 
+            echo "Pipeline failed!"
+        }
+    }
+}

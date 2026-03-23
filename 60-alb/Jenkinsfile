@@ -1,0 +1,65 @@
+pipeline {
+    agent {
+        label 'AGENT-1'
+    }
+
+    options {
+        timeout(time: 30, unit: 'MINUTES') // abort if build exceeds 30 minutes
+        disableConcurrentBuilds()           // prevent concurrent builds
+        ansiColor('xterm')                   // enable ANSI color support
+    }
+
+    parameters {
+        choice(name: 'ACTION', choices: ['apply', 'destroy'], description: 'Select ACTION')
+    }
+
+    stages {
+        stage('Init and Plan') {
+            steps {
+                withAWS(region: 'us-east-1', credentials: 'aws-creds') {
+                    sh """
+                        cd 60-alb
+                        terraform init -reconfigure
+                        terraform plan -out=tfplan
+                    """
+                }
+            }
+        }
+
+        stage('Apply or Destroy') {
+            // input {
+            //     message "Should we continue to ${params.ACTION}?"
+            //     ok "Yes, we should!"
+            // }
+            steps {
+                withAWS(region: 'us-east-1', credentials: 'aws-creds') {
+                    sh """
+                       cd60-alb
+                       if [ "${ACTION}" = "apply" ]; then
+                          terraform apply -auto-approve tfplan
+                       elif [ "${ACTION}" = "destroy" ]; then
+                          terraform destroy -auto-approve
+                       fi
+                    """
+                }
+            }
+        }
+
+
+        
+    }
+    
+
+    post { 
+        always { 
+            echo "This section will always execute regardless of the build result"
+            deleteDir() // clean workspace
+        }
+        success { 
+            echo "Pipeline succeeded!"
+        }
+        failure { 
+            echo "Pipeline failed!"
+        }
+    }
+}

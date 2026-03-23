@@ -50,7 +50,7 @@ pipeline {
             }
         }
 
-        stage ('Parallel In Sequential') {
+        stage ('Parallel-1') {
             when {
                 expression { params.ACTION == 'apply' }
             }
@@ -60,13 +60,48 @@ pipeline {
                         build job: '20-bastion', parameters: [string(name: 'ACTION', value: 'apply')]
                     }
                 }
+                stage('Trigger RDS') {
+                    steps {
+                        build job: '30-rds', parameters: [string(name: 'ACTION', value: 'apply')]
+                    }
+                }
                 stage('Trigger EKS') {
                     steps {
                         build job: '40-eks', parameters: [string(name: 'ACTION', value: 'apply')]
                     }
                 }
+                stage('Trigger ACM') {
+                    steps {
+                        build job: '50-acm', parameters: [string(name: 'ACTION', value: 'apply')]
+                    }
+                }
+                stage('Trigger ECR') {
+                    steps {
+                        build job: '70-ecr', parameters: [string(name: 'ACTION', value: 'apply')]
+                    }
+                }
             }
-        } 
+        }
+
+        stage ('Parallel-2') {
+            when {
+                expression { params.ACTION == 'apply' }
+            }
+            parallel {
+                stage('Trigger ALB') {
+                    steps {
+                        build job: '60-alb', parameters: [string(name: 'ACTION', value: 'apply')]
+                    }
+                }
+                stage('Trigger CDN') {
+                    steps {
+                        build job: '80-cdn', parameters: [string(name: 'ACTION', value: 'apply')]
+                    }
+                }
+                
+                
+            }
+        }  
 
     } 
     post { 

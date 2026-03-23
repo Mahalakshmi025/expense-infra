@@ -1,6 +1,6 @@
 # ACM Certificate for backend app
 resource "aws_acm_certificate" "expense" {
-  domain_name       = "*.${var.zone_name}"
+  domain_name       = "*.${var.zone_name}" #*.awspractice.shop
   validation_method = "DNS"
 
   tags = merge (
