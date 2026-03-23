@@ -45,64 +45,86 @@ pipeline {
             }
         }
 
-        stage ('Parallel-1') {
+        stage('Destroy'){
             when {
                 expression { params.ACTION == 'destroy' }
             }
-            parallel {
-                stage('Trigger ECR') {
-                    steps {
-                        build job: '70-ecr', parameters: [string(name: 'ACTION', value: 'destroy')]
-                    }
+            steps{
+                withAWS(region: 'us-east-1', credentials: 'aws-creds') {
+                    script {
+                        def directories = ['80-cdn', '70-ecr', '60-alb', '50-acm', '40-eks', '30-rds', '20-bastion', '10-sg', '00-vpc']
+                        for (dir in directories) {
+                            echo "Destroying resources in directory: ${dir}"
+                            sh """
+                            cd ${dir}
+                            terraform init -reconfigure
+                            terraform destroy -auto-approve || { echo "Failed to destroy resources in ${dir}"; exit 1; }
+                            cd ..
+                            """
+                        }
+            }
                 }
-                stage('Trigger ALB') {
-                    steps {
-                        build job: '60-alb', parameters: [string(name: 'ACTION', value: 'destroy')]
-                    }
-                }
-                
-                stage('Trigger ACM') {
-                    steps {
-                        build job: '50-acm', parameters: [string(name: 'ACTION', value: 'destroy')]
-                    }
-                }
-                stage('Trigger EKS') {
-                    steps {
-                        build job: '40-eks', parameters: [string(name: 'ACTION', value: 'destroy')]
-                    }
-                }
-                stage('Trigger RDS') {
-                    steps {
-                        build job: '30-rds', parameters: [string(name: 'ACTION', value: 'destroy')]
-                    }
-                }
-                stage('Trigger BASTION') {
-                    steps {
-                        build job: '20-bastion', parameters: [string(name: 'ACTION', value: 'destroy')]
-                    }
-                }
-                
             }
         }
 
-        stage('SG-Destroy') {
-            when {
-                expression { params.ACTION == 'destroy' }
-            }
+        // stage ('Parallel-1') {
+        //     when {
+        //         expression { params.ACTION == 'destroy' }
+        //     }
+        //     parallel {
+        //         stage('Trigger ECR') {
+        //             steps {
+        //                 build job: '70-ecr', parameters: [string(name: 'ACTION', value: 'destroy')]
+        //             }
+        //         }
+        //         stage('Trigger ALB') {
+        //             steps {
+        //                 build job: '60-alb', parameters: [string(name: 'ACTION', value: 'destroy')]
+        //             }
+        //         }
+                
+        //         stage('Trigger ACM') {
+        //             steps {
+        //                 build job: '50-acm', parameters: [string(name: 'ACTION', value: 'destroy')]
+        //             }
+        //         }
+        //         stage('Trigger EKS') {
+        //             steps {
+        //                 build job: '40-eks', parameters: [string(name: 'ACTION', value: 'destroy')]
+        //             }
+        //         }
+        //         stage('Trigger RDS') {
+        //             steps {
+        //                 build job: '30-rds', parameters: [string(name: 'ACTION', value: 'destroy')]
+        //             }
+        //         }
+        //         stage('Trigger BASTION') {
+        //             steps {
+        //                 build job: '20-bastion', parameters: [string(name: 'ACTION', value: 'destroy')]
+        //             }
+        //         }
+                
+        //     }
+        // }
+
+        // stage('SG-Destroy') {
+        //     when {
+        //         expression { params.ACTION == 'destroy' }
+        //     }
           
-            steps {
-                 build job: '10-sg', parameters: [string(name: 'ACTION', value: 'destroy')]
-                }
-            }
-        stage('VPC-Destry') {
-            when {
-                expression { params.ACTION == 'destroy' }
-            }
-            steps {
-                 build job: '00-vpc', parameters: [string(name: 'ACTION', value: 'destroy')]
-            }
+        //     steps {
+        //          build job: '10-sg', parameters: [string(name: 'ACTION', value: 'destroy')]
+        //         }
+        //     }
+        // stage('VPC-Destry') {
+        //     when {
+        //         expression { params.ACTION == 'destroy' }
+        //     }
+        //     steps {
+        //          build job: '00-vpc', parameters: [string(name: 'ACTION', value: 'destroy')]
+        //     }
 
-        }
+        // }
         
     }
     
