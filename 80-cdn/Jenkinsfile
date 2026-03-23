@@ -86,11 +86,18 @@ pipeline {
         }
 
         stage('SG-Destroy') {
+            when {
+                expression { params.ACTION == 'destroy' }
+            }
+          
             steps {
                  build job: '10-sg', parameters: [string(name: 'ACTION', value: 'destroy')]
                 }
             }
         stage('VPC-Destry') {
+            when {
+                expression { params.ACTION == 'destroy' }
+            }
             steps {
                  build job: '00-vpc', parameters: [string(name: 'ACTION', value: 'destroy')]
             }
