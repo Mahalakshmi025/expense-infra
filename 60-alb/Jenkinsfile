@@ -34,7 +34,7 @@ pipeline {
             steps {
                 withAWS(region: 'us-east-1', credentials: 'aws-creds') {
                     sh """
-                       cd60-alb
+                       cd 60-alb
                        if [ "${params.ACTION}" = "apply" ]; then
                           terraform apply -auto-approve tfplan
                        elif [ "${params.ACTION}" = "destroy" ]; then

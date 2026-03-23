@@ -60,11 +60,11 @@ pipeline {
                         build job: '20-bastion', parameters: [string(name: 'ACTION', value: 'apply')]
                     }
                 }
-                // stage('Trigger RDS') {
-                //     steps {
-                //         build job: '30-rds', parameters: [string(name: 'ACTION', value: 'apply')]
-                //     }
-                // }
+                stage('Trigger RDS') {
+                    steps {
+                        build job: '30-rds', parameters: [string(name: 'ACTION', value: 'apply')]
+                    }
+                }
                 stage('Trigger EKS') {
                     steps {
                         build job: '40-eks', parameters: [string(name: 'ACTION', value: 'apply')]
