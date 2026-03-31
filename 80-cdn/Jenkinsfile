@@ -2,17 +2,18 @@ pipeline {
     agent {
         label 'AGENT-1'
     }
-
-    options {
-        timeout(time: 30, unit: 'MINUTES') // abort if build exceeds 30 minutes
-        disableConcurrentBuilds()           // prevent concurrent builds
-        ansiColor('xterm')                   // enable ANSI color support
+    options{
+        timeout(time: 30, unit: 'MINUTES')
+        disableConcurrentBuilds()
+        ansiColor('xterm')
     }
+    // environment {
+    //     DEBUG = 'true'
+    // }
 
     parameters {
-        choice(name: 'ACTION', choices: ['apply', 'destroy'], description: 'Select ACTION')
+        choice(name: 'ACTION', choices: ['apply', 'destroy'], description: 'Select Action')
     }
-
     stages {
         stage('Init and Plan') {
             steps {
@@ -27,126 +28,109 @@ pipeline {
         }
 
         stage('Apply or Destroy') {
-            // input {
-            //     message "Should we continue to ${params.ACTION}?"
-            //     ok "Yes, we should!"
-            // }
+            /* input {
+                message "Should we continue to ${params.ACTION}"
+                ok "Yes, we should."
+            } */
             steps {
                 withAWS(region: 'us-east-1', credentials: 'aws-creds') {
                     sh """
-                       cd 80-cdn
-                       if [ "${params.ACTION}" = "apply" ]; then
-                          terraform apply -auto-approve tfplan
-                       elif [ "${params.ACTION}" = "destroy" ]; then
-                          terraform destroy -auto-approve
-                       fi
+                        cd 80-cdn
+                        if [ ${params.ACTION} == 'apply' ]
+                        then
+                            terraform apply -auto-approve tfplan
+                        fi
                     """
                 }
             }
         }
 
-stage('Destroy') {
-    when {
-        expression { params.ACTION == 'destroy' }
-    }
-    steps {
-        withAWS(region: 'us-east-1', credentials: 'aws-creds') {
-            script {
-                def directories = ['80-cdn', '70-ecr', '60-alb', '50-acm', '40-eks', '30-rds', '20-bastion', '10-sg', '00-vpc']
-                def failures = []
-
-                for (dir in directories) {
-                    echo "Destroying resources in directory: ${dir}"
-                    try {
-                        sh """
-                        (cd ${dir} && terraform init -reconfigure && terraform destroy -auto-approve)
-                        """
-                    } catch (err) {
-                        echo "Failed to destroy resources in ${dir}"
-                        failures.add(dir)
+        /* stage('Destroy') {
+            when {
+                expression { params.ACTION == 'destroy' }
+            }
+            parallel {
+                stage('ECR') {
+                    steps {
+                        build job: '70-ecr', parameters: [string(name: 'ACTION', value: "destroy")], wait: false
+                    }
+                }
+                stage('ALB') {
+                    steps {
+                        build job: '60-alb', parameters: [string(name: 'ACTION', value: "destroy")], wait: false
+                    }
+                }
+                stage('EKS') {
+                    steps {
+                        build job: '40-eks', parameters: [string(name: 'ACTION', value: "destroy")], wait: true
+                    }
+                }
+                stage('Bastion') {
+                    steps {
+                        build job: '20-bastion', parameters: [string(name: 'ACTION', value: "destroy")], wait: false
                     }
                 }
 
-                if (failures.size() > 0) {
-                    error("Destroy failed for directories: ${failures.join(', ')}")
+            }
+        } */
+        stage('Destroy'){
+            when {
+                expression { params.ACTION == 'destroy' }
+            }
+            steps{
+                withAWS(region: 'us-east-1', credentials: 'aws-creds') {
+                    script {
+                        def directories = ['80-cdn', '70-ecr', '60-alb', '50-acm', '40-eks', '30-rds', '20-bastion', '10-sg', '00-vpc']
+                        for (dir in directories) {
+                            echo "Destroying resources in directory: ${dir}"
+                            sh """
+                            cd ${dir}
+                            terraform init -reconfigure
+                            terraform destroy -auto-approve || { echo "Failed to destroy resources in ${dir}"; exit 1; }
+                            cd ..
+                            """
+                        }
+            }
                 }
             }
         }
-    }
-}
-
-        // stage ('Parallel-1') {
-        //     when {
-        //         expression { params.ACTION == 'destroy' }
-        //     }
-        //     parallel {
-        //         stage('Trigger ECR') {
-        //             steps {
-        //                 build job: '70-ecr', parameters: [string(name: 'ACTION', value: 'destroy')]
-        //             }
-        //         }
-        //         stage('Trigger ALB') {
-        //             steps {
-        //                 build job: '60-alb', parameters: [string(name: 'ACTION', value: 'destroy')]
-        //             }
-        //         }
+        /* stage('Sequential') {
+            when {
+                expression { params.ACTION == 'destroy' }
+            }
+            stages {
                 
-        //         stage('Trigger ACM') {
-        //             steps {
-        //                 build job: '50-acm', parameters: [string(name: 'ACTION', value: 'destroy')]
-        //             }
-        //         }
-        //         stage('Trigger EKS') {
-        //             steps {
-        //                 build job: '40-eks', parameters: [string(name: 'ACTION', value: 'destroy')]
-        //             }
-        //         }
-        //         stage('Trigger RDS') {
-        //             steps {
-        //                 build job: '30-rds', parameters: [string(name: 'ACTION', value: 'destroy')]
-        //             }
-        //         }
-        //         stage('Trigger BASTION') {
-        //             steps {
-        //                 build job: '20-bastion', parameters: [string(name: 'ACTION', value: 'destroy')]
-        //             }
-        //         }
+                stage('ACM') {
+                    steps {
+                        build job: '50-acm', parameters: [string(name: 'ACTION', value: "destroy")], wait: false
+                    }
+                }
+                stage('SG-Destroy'){
+                    steps {
+                        build job: '10-sg', parameters: [string(name: 'ACTION', value: "destroy")], wait: true
+                    }
+                }
+                stage('VPC-Destroy'){
+                    steps {
+                        build job: '00-vpc', parameters: [string(name: 'ACTION', value: "destroy")], wait: false
+                    }
+                }
+            }
                 
-        //     }
-        // }
-
-        // stage('SG-Destroy') {
-        //     when {
-        //         expression { params.ACTION == 'destroy' }
-        //     }
-          
-        //     steps {
-        //          build job: '10-sg', parameters: [string(name: 'ACTION', value: 'destroy')]
-        //         }
-        //     }
-        // stage('VPC-Destry') {
-        //     when {
-        //         expression { params.ACTION == 'destroy' }
-        //     }
-        //     steps {
-        //          build job: '00-vpc', parameters: [string(name: 'ACTION', value: 'destroy')]
-        //     }
-
-        // }
+        } */
         
     }
-    
 
-    post { 
-        always { 
-            echo "This section will always execute regardless of the build result"
-            deleteDir() // clean workspace
+    post {
+        always{
+            echo "This sections runs always"
+            deleteDir()
         }
-        success { 
-            echo "Pipeline succeeded!"
+        success{
+            echo "This section run when pipeline success"
         }
-        failure { 
-            echo "Pipeline failed!"
+        failure{
+            echo "This section run when pipeline failure"
         }
     }
 }
