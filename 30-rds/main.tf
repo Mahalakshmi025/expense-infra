@@ -10,9 +10,11 @@ module "db" {
   allocated_storage   = 10
   db_name             = "transactions"
   username            = "root"
-  manage_master_user_password = true 
-  password_wo         = "ExpenseApp1"
-  #password            = "ExpenseApp1"
+  manage_master_user_password = false
+  # manage_master_user_password = true 
+  # password_wo         = "ExpenseApp1"
+  password_wo           = "ExpenseApp1"
+  password_wo_version = 1
   port                = "3306"
   publicly_accessible = true
 

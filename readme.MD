@@ -80,17 +80,38 @@ aws iam create-policy \
     --policy-name AWSLoadBalancerControllerIAMPolicy \
     --policy-document file://iam-policy.json
 ```
+
 * Create Service account. Replace your account ID.
 ```
 eksctl create iamserviceaccount \
 --cluster=expense-dev \
 --namespace=kube-system \
 --name=aws-load-balancer-controller \
---attach-policy-arn=arn:aws:iam::315069654700:policy/AWSLoadBalancerControllerIAMPolicy \
+--attach-policy-arn=arn:aws:iam::128759047428:policy/AWSLoadBalancerControllerIAMPolicy \
 --override-existing-serviceaccounts \
 --region us-east-1 \
 --approve
 ```
+
+* Delete existing service account (These 2 steps are used only when there is existing service accounts)
+```
+eksctl delete iamserviceaccount \
+  --cluster expense-dev \
+  --namespace kube-system \
+  --name aws-load-balancer-controller \
+  --region us-east-1
+```
+* Recreate correctly
+```
+eksctl create iamserviceaccount \
+--cluster=expense-dev \
+--namespace=kube-system \
+--name=aws-load-balancer-controller \
+--attach-policy-arn=arn:aws:iam::128759047428:policy/AWSLoadBalancerControllerIAMPolicy \
+--region us-east-1 \
+--approve
+```
+
 
 * Install aws load balancer controller drivers through helm.
 
@@ -117,4 +138,14 @@ eks-pod-identity-agent-9ngdt                    1/1     Running   0          5m1
 eks-pod-identity-agent-cj98g                    1/1     Running   0          5m17s
 kube-proxy-7sgw7                                1/1     Running   0          6m4s
 kube-proxy-8zb7z                                1/1     Running   0          6m5s
+```
+
+* This command is used to destroy folders one by one in bash
+
+```
+for dir in 80-cdn 70-ecr 20-bastion; do
+  cd $dir
+  terraform destroy -auto-approve
+  cd ..
+done
 ```

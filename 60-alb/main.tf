@@ -70,7 +70,7 @@ module "records" {
 
 resource "aws_lb_target_group" "expense" {
   name     = local.resource_name
-  port     = 80
+  port     = 8080
   protocol = "HTTP"
   vpc_id   = local.vpc_id
   target_type = "ip"
